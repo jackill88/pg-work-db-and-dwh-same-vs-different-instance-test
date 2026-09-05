@@ -1,0 +1,19 @@
+# Example per-scenario override for same-instance benchmarks.
+#
+# Usage:
+#   cp docker/postgres/same-instance.override.conf.example docker/postgres/same-instance.local.conf
+#   edit values, then in docker-compose.same-instance.yml change:
+#     ./docker/postgres/same-instance.conf
+#   to:
+#     ./docker/postgres/same-instance.local.conf
+#
+# same-instance.local.conf is gitignored.
+
+include '/etc/postgresql/bench/common.conf'
+
+# Lower shared_buffers if the host is memory-constrained
+shared_buffers = 384MB
+effective_cache_size = 3GB
+work_mem = 4MB
+maintenance_work_mem = 256MB
+max_connections = 200

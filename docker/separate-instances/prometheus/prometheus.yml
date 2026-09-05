@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  external_labels:
+    scenario: separate_instances
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: postgres_live
+    static_configs:
+      - targets: ["postgres_exporter_live:9187"]
+        labels:
+          role: live
+          deployment: separate_instances
+
+  - job_name: postgres_dwh
+    static_configs:
+      - targets: ["postgres_exporter_dwh:9187"]
+        labels:
+          role: dwh
+          deployment: separate_instances
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  - job_name: loadgen
+    static_configs:
+      - targets: ["host.docker.internal:9100"]
+        labels:
+          deployment: separate_instances

@@ -1,0 +1,18 @@
+{
+  "scenario": "same_instance",
+  "started_at": "2026-09-05T16:59:07.694510294Z",
+  "finished_at": "2026-09-05T16:59:18.221512535Z",
+  "duration_seconds": 10.527002380999999,
+  "live_target_rps": 100,
+  "live_workers": 128,
+  "dwh_read_workers": 15,
+  "dwh_bulk_batch_size": 5000,
+  "live_database_url": "postgres://***:***@localhost:5432/live",
+  "dwh_database_url": "postgres://***:***@localhost:5432/dwh",
+  "prometheus_url": "http://localhost:9090",
+  "loadgen_metrics_url": "http://localhost:9100/metrics",
+  "notes": [
+    "Prometheus retains postgres_exporter and cadvisor metrics for this run.",
+    "Use scripts/export-prometheus.sh to snapshot PromQL queries into CSV/JSON."
+  ]
+}

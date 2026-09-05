@@ -1,0 +1,7 @@
+/target/
+/loadgen/target/
+/results/
+*.swp
+.env
+.DS_Store
+docker/postgres/*.local.conf

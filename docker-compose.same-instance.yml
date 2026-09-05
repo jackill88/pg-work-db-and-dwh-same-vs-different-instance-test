@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pg-bench-shared
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: postgres
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/bench/postgresql.conf
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_shared_data:/var/lib/postgresql/data
+      - ./docker/postgres/common.conf:/etc/postgresql/bench/common.conf:ro
+      - ./docker/postgres/same-instance.conf:/etc/postgresql/bench/postgresql.conf:ro
+      - ./docker/same-instance/init/00-create-databases.sh:/docker-entrypoint-initdb.d/00-create-databases.sh:ro
+      - ./docker/init:/schemas:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bench -d live && pg_isready -U bench -d dwh"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - bench-net
+
+  postgres_exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: pg-bench-shared-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://bench:bench@postgres:5432/postgres?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bench-net
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: pg-bench-cadvisor-same
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - bench-net
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: pg-bench-prometheus-same
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/same-instance/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_same_data:/prometheus
+    depends_on:
+      - postgres_exporter
+      - cadvisor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - bench-net
+
+volumes:
+  postgres_shared_data:
+  prometheus_same_data:
+
+networks:
+  bench-net:
+    name: pg-bench-same-net

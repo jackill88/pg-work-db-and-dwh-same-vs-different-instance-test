@@ -1,0 +1,117 @@
+services:
+  postgres_live:
+    image: postgres:16-alpine
+    container_name: pg-bench-live
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: live
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/bench/postgresql.conf
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_live_data:/var/lib/postgresql/data
+      - ./docker/postgres/common.conf:/etc/postgresql/bench/common.conf:ro
+      - ./docker/postgres/live.conf:/etc/postgresql/bench/postgresql.conf:ro
+      - ./docker/init/01-live-schema.sql:/docker-entrypoint-initdb.d/01-live-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bench -d live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - bench-net
+
+  postgres_dwh:
+    image: postgres:16-alpine
+    container_name: pg-bench-dwh
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: dwh
+    command:
+      - postgres
+      - -c
+      - config_file=/etc/postgresql/bench/postgresql.conf
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_dwh_data:/var/lib/postgresql/data
+      - ./docker/postgres/common.conf:/etc/postgresql/bench/common.conf:ro
+      - ./docker/postgres/dwh.conf:/etc/postgresql/bench/postgresql.conf:ro
+      - ./docker/init/02-dwh-schema.sql:/docker-entrypoint-initdb.d/02-dwh-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bench -d dwh"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - bench-net
+
+  postgres_exporter_live:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: pg-bench-live-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://bench:bench@postgres_live:5432/live?sslmode=disable
+    depends_on:
+      postgres_live:
+        condition: service_healthy
+    networks:
+      - bench-net
+
+  postgres_exporter_dwh:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: pg-bench-dwh-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://bench:bench@postgres_dwh:5432/dwh?sslmode=disable
+    depends_on:
+      postgres_dwh:
+        condition: service_healthy
+    networks:
+      - bench-net
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: pg-bench-cadvisor-separate
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - bench-net
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: pg-bench-prometheus-separate
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/separate-instances/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_separate_data:/prometheus
+    depends_on:
+      - postgres_exporter_live
+      - postgres_exporter_dwh
+      - cadvisor
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - bench-net
+
+volumes:
+  postgres_live_data:
+  postgres_dwh_data:
+  prometheus_separate_data:
+
+networks:
+  bench-net:
+    name: pg-bench-separate-net
