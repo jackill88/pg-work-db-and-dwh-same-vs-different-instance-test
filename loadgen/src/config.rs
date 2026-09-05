@@ -19,7 +19,7 @@ pub struct Config {
     pub dwh_database_url: String,
 
     /// Target live-database operations per second across all workers
-    #[arg(long, env = "LIVE_TARGET_RPS", default_value_t = 5000)]
+    #[arg(long, env = "LIVE_TARGET_RPS", default_value_t = 1750)]
     pub live_target_rps: u64,
 
     /// How long to run the benchmark
@@ -72,6 +72,14 @@ pub struct Config {
     #[arg(long, env = "DB_CONNECT_TIMEOUT", default_value = "2m")]
     #[arg(value_parser = parse_duration)]
     pub db_connect_timeout: std::time::Duration,
+
+    /// Compose scenario name (e.g. same_instance, separate_instances)
+    #[arg(long, env = "COMPOSE_SCENARIO")]
+    pub compose_scenario: Option<String>,
+
+    /// Path to the docker compose file used for this run
+    #[arg(long, env = "COMPOSE_FILE")]
+    pub compose_file: Option<String>,
 }
 
 fn parse_bool(value: &str) -> Result<bool, String> {

@@ -7,7 +7,7 @@ This repo compares two deployment models under identical application load:
 
 A Rust load generator drives:
 
-- **Live DB:** ~5000 mixed read/write ops/sec (point reads, recent-order scans, inserts, balance updates)
+- **Live DB:** ~1750 mixed read/write ops/sec (point reads, recent-order scans, inserts, balance updates)
 - **DWH:** periodic bulk inserts (5k rows/batch) plus 15 concurrent analytical readers
 
 Prometheus collects:
@@ -20,7 +20,7 @@ Prometheus collects:
 
 - Docker + Docker Compose
 - Rust toolchain (`cargo`)
-- Enough CPU/RAM for 5000 RPS (adjust `LIVE_TARGET_RPS` if needed)
+- Enough CPU/RAM for the configured load (default 1750 ops/sec; adjust `LIVE_TARGET_RPS` if needed)
 
 ## PostgreSQL tuning
 
@@ -82,7 +82,7 @@ Connects to:
 export SCENARIO=same_instance
 export LIVE_DATABASE_URL=postgresql://bench:bench@localhost:5432/live
 export DWH_DATABASE_URL=postgresql://bench:bench@localhost:5432/dwh
-export LIVE_TARGET_RPS=5000
+export LIVE_TARGET_RPS=1750
 export TEST_DURATION=5m
 export DWH_READ_WORKERS=15
 
@@ -93,7 +93,7 @@ Useful tuning env vars:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `LIVE_TARGET_RPS` | `5000` | Target live DB ops/sec |
+| `LIVE_TARGET_RPS` | `1750` | Target live DB ops/sec |
 | `LIVE_WORKERS` | `128` | Concurrent live workers |
 | `LIVE_POOL_SIZE` | `200` | Live connection pool size |
 | `DWH_READ_WORKERS` | `15` | Analytical read connections |
@@ -109,9 +109,10 @@ Useful tuning env vars:
 When a benchmark finishes, the load generator **automatically exports metrics** (enabled by default via `EXPORT_METRICS=true`):
 
 1. Creates a timestamped run directory, e.g. `results/same-instance/20250905T170500Z/`
-2. Writes `loadgen-metrics.prom` — load generator latency/throughput counters
-3. Queries Prometheus for the **full test window** (`query_range`) using `prometheus/queries.txt`
-4. Writes `summary.json` and `manifest.json` listing all exported query files
+2. Writes `config.json` — full loadgen params, compose scenario, and PostgreSQL conf fragments
+3. Writes `loadgen-metrics.prom` — load generator latency/throughput counters
+4. Queries Prometheus for the **full test window** (`query_range`) using `prometheus/queries.txt`
+5. Writes `summary.json` and `manifest.json` listing all exported query files
 
 Disable auto-export:
 
@@ -122,6 +123,7 @@ EXPORT_METRICS=false cargo run --release --manifest-path loadgen/Cargo.toml
 After each run:
 
 - **Run directory:** `results/<scenario>/<timestamp>/`
+- **Config snapshot:** `results/<scenario>/<timestamp>/config.json`
 - **Summary:** `results/<scenario>/<timestamp>/summary.json`
 - **Prometheus series:** `results/<scenario>/<timestamp>/range-*.json`
 - **Live Prometheus UI:** http://localhost:9090

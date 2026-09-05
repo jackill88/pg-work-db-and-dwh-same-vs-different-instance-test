@@ -4,6 +4,7 @@ mod dwh;
 mod export;
 mod live;
 mod metrics;
+mod run_config;
 mod stats;
 
 use anyhow::Context;
@@ -94,6 +95,10 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let started_at = Utc::now();
+    let run_dir = export::run_directory(&config.results_dir, started_at);
+    let config_path = run_config::write_run_config(&config, &run_dir, started_at)?;
+    tracing::info!(path = %config_path.display(), "wrote run config");
+
     let wall_start = Instant::now();
     tracing::info!(
         duration = ?config.test_duration,
@@ -112,14 +117,15 @@ async fn main() -> anyhow::Result<()> {
 
     let finished_at = Utc::now();
     let duration_seconds = wall_start.elapsed().as_secs_f64();
-    let run_dir = export::run_directory(&config.results_dir, started_at);
-    std::fs::create_dir_all(&run_dir)?;
 
     let loadgen_metrics_path = run_dir.join("loadgen-metrics.prom");
     export::write_loadgen_metrics(&metrics, &loadgen_metrics_path)?;
     tracing::info!(path = %loadgen_metrics_path.display(), "wrote loadgen metrics");
 
-    let mut exported_files = vec![loadgen_metrics_path.display().to_string()];
+    let mut exported_files = vec![
+        config_path.display().to_string(),
+        loadgen_metrics_path.display().to_string(),
+    ];
 
     if config.export_metrics {
         match export::export_prometheus(

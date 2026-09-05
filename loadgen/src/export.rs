@@ -67,7 +67,7 @@ fn export_step(duration: Duration) -> String {
     format!("{step}s")
 }
 
-fn locate_repo_root() -> anyhow::Result<PathBuf> {
+pub fn locate_repo_root() -> anyhow::Result<PathBuf> {
     if let Ok(manifest) = std::env::var("CARGO_MANIFEST_DIR") {
         let loadgen_dir = PathBuf::from(manifest);
         if let Some(root) = loadgen_dir.parent() {
