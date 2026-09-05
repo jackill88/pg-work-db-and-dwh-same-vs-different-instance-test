@@ -17,6 +17,9 @@ pub async fn connect_with_retry(
     for attempt in 1..=max_attempts {
         match PgPoolOptions::new()
             .max_connections(max_connections)
+            .min_connections(4)
+            .acquire_timeout(Duration::from_secs(30))
+            .idle_timeout(Duration::from_secs(600))
             .connect(database_url)
             .await
         {

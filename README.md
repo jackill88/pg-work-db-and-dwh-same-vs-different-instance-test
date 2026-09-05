@@ -94,8 +94,10 @@ Useful tuning env vars:
 | Variable | Default | Purpose |
 |---|---|---|
 | `LIVE_TARGET_RPS` | `1750` | Target live DB ops/sec |
-| `LIVE_WORKERS` | `128` | Concurrent live workers |
-| `LIVE_POOL_SIZE` | `200` | Live connection pool size |
+| `LIVE_WORKERS` | `32` | Concurrent live workers (pacing slots) |
+| `LIVE_POOL_SIZE` | `48` | Live connection pool size (must fit within PG `max_connections` alongside DWH) |
+
+If you have `LIVE_WORKERS` or `LIVE_POOL_SIZE` exported in your shell from earlier runs, unset them or the run scripts will honor those values instead of the tuned defaults.
 | `DWH_READ_WORKERS` | `15` | Analytical read connections |
 | `DWH_BULK_BATCH_SIZE` | `5000` | Rows per bulk insert batch |
 | `DWH_BULK_INTERVAL` | `2s` | Pause between bulk batches |

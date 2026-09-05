@@ -25,7 +25,14 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let config = Config::parse();
-    tracing::info!(scenario = %config.scenario, "starting benchmark");
+    if std::env::var_os("LIVE_WORKERS").is_some() || std::env::var_os("LIVE_POOL_SIZE").is_some() {
+        tracing::info!(
+            live_workers = config.live_workers,
+            live_pool_size = config.live_pool_size,
+            "using LIVE_WORKERS / LIVE_POOL_SIZE from environment"
+        );
+    }
+    tracing::info!(scenario = %config.scenario, live_target_rps = config.live_target_rps, "starting benchmark");
 
     let live_pool = db::connect_with_retry(
         &config.live_database_url,

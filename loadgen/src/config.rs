@@ -27,12 +27,12 @@ pub struct Config {
     #[arg(value_parser = parse_duration)]
     pub test_duration: std::time::Duration,
 
-    /// Concurrent live DB workers
-    #[arg(long, env = "LIVE_WORKERS", default_value_t = 128)]
+    /// Concurrent live DB workers (each executes ops after taking a global rate slot)
+    #[arg(long, env = "LIVE_WORKERS", default_value_t = 32)]
     pub live_workers: usize,
 
-    /// Max connections in the live DB pool
-    #[arg(long, env = "LIVE_POOL_SIZE", default_value_t = 200)]
+    /// Max connections in the live DB pool (keep below PG max_connections minus DWH pool)
+    #[arg(long, env = "LIVE_POOL_SIZE", default_value_t = 48)]
     pub live_pool_size: u32,
 
     /// Concurrent analytical read workers against the DWH
